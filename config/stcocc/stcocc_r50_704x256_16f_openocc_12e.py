@@ -258,6 +258,8 @@ model = dict(
         out_channels=backward_numC_Trans,
         foreground_idx=foreground_idx,
         num_classes=num_classes,
+        bev_h=200,
+        bev_w=200,
     )
 )
 

@@ -29,7 +29,7 @@ def squeeze_label(target_voxels, ratio, empty_idx=16):
     target_voxels = target_voxels.long()
     return target_voxels[0]
 
-def downsample_label(label, voxel_size=(200, 200, 16), downscale=2, empty_cls_idx=16):
+def downsample_label(label, voxel_size=(352, 352, 32), downscale=2, empty_cls_idx=16):
     r"""downsample the labeled data,
     code taken from https://github.com/waterljwant/SSC/blob/master/dataloaders/dataloader.py#L262
     Shape:
@@ -87,6 +87,7 @@ def main(args):
         save_path_1_2 = os.path.join(occ_path, 'labels_1_2.npz')
         save_path_1_4 = os.path.join(occ_path, 'labels_1_4.npz')
         save_path_1_8 = os.path.join(occ_path, 'labels_1_8.npz')
+        # if os.path.exists(save_path_1_2) and os.path.exists(save_path_1_4) and os.path.exists(save_path_1_8): continue
 
         labels = np.load(label_path)['semantics']
         labels = torch.from_numpy(labels)

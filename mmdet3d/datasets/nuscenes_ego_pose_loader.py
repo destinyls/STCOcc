@@ -7,7 +7,7 @@ from pyquaternion import Quaternion
 from torch.utils.data import Dataset
 from nuscenes.utils.geometry_utils import transform_matrix
 from nuscenes.utils.splits import train, val, test
-
+from .splits import splits
 
 # https://github.com/tarashakhurana/4d-occ-forecasting/blob/ff986082cd6ea10e67ab7839bf0e654736b3f4e2/data/nusc.py#L22
 class nuScenesDataset(Dataset):
@@ -20,15 +20,14 @@ class nuScenesDataset(Dataset):
         self.nusc = nusc
         self.nusc_split = nusc_split
         self.nusc_root = self.nusc.dataroot
-
         scenes = self.nusc.scene
 
         if self.nusc_split == "train":
-            split_scenes = train
+            split_scenes = splits["train"]
         elif self.nusc_split == "val":
-            split_scenes = val
+            split_scenes = splits["val"]
         else:
-            split_scenes = test
+            split_scenes = splits["test"]
 
         # list all sample data
         self.valid_index = []

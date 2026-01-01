@@ -76,7 +76,7 @@ class STCOcc(CenterPoint):
         # ---------------------- init loss ------------------------------
         self.class_weights = torch.tensor(np.array(class_weights), dtype=torch.float32, device='cuda')
         self.flow_loss = builder.build_loss(dict(type='L1Loss', loss_weight=1.0))
-        self.focal_loss_dict = self._build_focal_loss(dict(type='CustomFocalLoss', bev_h=200, bev_w=200), num_stage)
+        self.focal_loss_dict = self._build_focal_loss(dict(type='CustomFocalLoss', bev_h=352, bev_w=352), num_stage)
         # ---------------------- build components ------------------------------
         # BEVDet-Series
         self.forward_projection = builder.build_neck(forward_projection)
@@ -433,7 +433,6 @@ class STCOcc(CenterPoint):
         num_stage = self.num_stage
         for index in range(num_stage):
             gt_semantic_voxel_dict['gt_semantic_voxel_1_{}'.format(2**(index+1))] = kwargs['voxel_semantics_1_{}'.format(2**(index+1))]
-
         # calc forward-projection depth-loss
         loss_depth = self.forward_projection.img_view_transformer.get_depth_loss(kwargs['gt_depth'], depth)
         losses['loss_depth'] = loss_depth

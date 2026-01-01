@@ -170,8 +170,8 @@ class CustomFocalLoss(nn.Module):
                  reduction='mean',
                  loss_weight=100.0,
                  activated=False,
-                 bev_h=200,
-                 bev_w=200
+                 bev_h=352,
+                 bev_w=352
                  ):
         """`Focal Loss <https://arxiv.org/abs/1708.02002>`_
         Args:

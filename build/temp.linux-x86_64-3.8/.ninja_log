@@ -1,0 +1,5 @@
+# ninja log v7
+1	2007	1766386115668094836	/home/yanglei/STCOcc/build/temp.linux-x86_64-3.8/mmdet3d/ops/bev_pool_v2/src/bev_pool_cuda.o	ad9a1691c098b806
+1	47882	1766386115668094836	/home/yanglei/STCOcc/build/temp.linux-x86_64-3.8/mmdet3d/ops/bev_pool_v2/src/bev_pool.o	6daa6e616cdb7dc
+23	879	1766400120414058887	/home/yanglei/STCOcc/build/temp.linux-x86_64-3.8/mmdet3d/ops/bev_pool_v2/src/bev_pool_cuda.o	34a6cffcdf8b419d
+22	19434	1766400120413058886	/home/yanglei/STCOcc/build/temp.linux-x86_64-3.8/mmdet3d/ops/bev_pool_v2/src/bev_pool.o	633b6fc14030ff9f

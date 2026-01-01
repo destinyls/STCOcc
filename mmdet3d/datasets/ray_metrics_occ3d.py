@@ -15,7 +15,7 @@ dvr = load("dvr", sources=["libs/dvr/dvr.cpp", "libs/dvr/dvr.cu"], verbose=True,
 
 _pc_range = [-40, -40, -1.0, 40, 40, 5.4]
 _voxel_size = 0.4
-_occ_size = [200, 200, 16]
+_occ_size = [352, 352, 32]
 
 occ_class_names = [
     'others','barrier', 'bicycle', 'bus', 'car', 'construction_vehicle',
@@ -209,10 +209,10 @@ def main(sem_pred_list, sem_gt_list, flow_pred_list, flow_gt_list, lidar_origin_
     pcd_pred_list, pcd_gt_list = [], []
     for sem_pred, sem_gt, flow_pred, flow_gt, lidar_origins in tqdm(
             zip(sem_pred_list, sem_gt_list, flow_pred_list, flow_gt_list, lidar_origin_list), ncols=50):
-        sem_pred = np.reshape(sem_pred, [200, 200, 16])
-        sem_gt = np.reshape(sem_gt, [200, 200, 16])
-        flow_pred = np.reshape(flow_pred, [200, 200, 16, 2])
-        flow_gt = np.reshape(flow_gt, [200, 200, 16, 2])
+        sem_pred = np.reshape(sem_pred, [352, 352, 32])
+        sem_gt = np.reshape(sem_gt, [352, 352, 32])
+        flow_pred = np.reshape(flow_pred, [352, 352, 32, 2])
+        flow_gt = np.reshape(flow_gt, [352, 352, 32, 2])
 
         pcd_pred = process_one_sample(sem_pred, lidar_rays, lidar_origins, flow_pred)
         pcd_gt = process_one_sample(sem_gt, lidar_rays, lidar_origins, flow_gt)

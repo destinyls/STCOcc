@@ -87,7 +87,7 @@ class Metric_mIoU():
         elif num_classes == 17:
             self.foreground_names = ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'pedestrian']
 
-        self.point_cloud_range = [-40.0, -40.0, -1.0, 40.0, 40.0, 5.4]
+        self.point_cloud_range = [-70.4, -70.4, -4.8, 70.4, 70.4, 8.0]
         self.occupancy_size = [0.4, 0.4, 0.4]
         self.voxel_size = 0.4
         self.occ_xdim = int((self.point_cloud_range[3] - self.point_cloud_range[0]) / self.occupancy_size[0])
@@ -258,7 +258,7 @@ class Metric_FScore():
                  threshold_acc=0.6,
                  threshold_complete=0.6,
                  voxel_size=[0.4, 0.4, 0.4],
-                 range=[-40, -40, -1, 40, 40, 5.4],
+                 range=[-70.4, -70.4, -4.8, 70.4, 70.4, 8.0],
                  void=[17, 255],
                  use_lidar_mask=False,
                  use_image_mask=False, ) -> None:

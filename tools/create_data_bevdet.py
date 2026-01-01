@@ -139,7 +139,7 @@ if __name__ == '__main__':
     dataset = 'nuscenes'
     version = 'v1.0'
     train_half=False
-    can_bus_path = 'data/nuscenes'
+    can_bus_path = None  # Set to None since CAN bus data is optional
     train_version = f'{version}-trainval'
     # train_version = f'{version}-mini'
     root_path = './data/nuscenes'

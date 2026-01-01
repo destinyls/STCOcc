@@ -38,7 +38,7 @@ def parse_args():
         description='MMDet test (and eval) a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--out', help='output result file in pickle format')
+    parser.add_argument('--out', default="work_dirs/results.pkl", help='output result file in pickle format')
     parser.add_argument(
         '--fuse-conv-bn',
         action='store_true',
@@ -240,11 +240,17 @@ def main():
         outputs = single_gpu_test(model, data_loader, args.show, args.show_dir, batch_size=samples_per_gpu)
     else:
         model = MMDistributedDataParallel(model.cuda(),device_ids=[torch.cuda.current_device()], broadcast_buffers=False)
-        outputs = multi_gpu_test(model, data_loader, args.tmpdir, args.gpu_collect, batch_size=samples_per_gpu)
+        print("args.out: ", args.out)
+        if not os.path.exists(args.out):
+            print("1. inference")
+            outputs = multi_gpu_test(model, data_loader, args.tmpdir, args.gpu_collect, batch_size=samples_per_gpu)
+        else:
+            print("2. loading")
+            outputs = mmcv.load(args.out)
 
     rank, _ = get_dist_info()
     if rank == 0:
-        if args.out:
+        if args.out and not os.path.exists(args.out):
             print(f'\nwriting results to {args.out}')
             mmcv.dump(outputs, args.out)
         kwargs = {} if args.eval_options is None else args.eval_options

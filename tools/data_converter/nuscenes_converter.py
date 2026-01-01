@@ -46,19 +46,28 @@ def create_nuscenes_infos(root_path,
     """
     from nuscenes.nuscenes import NuScenes
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
-    nusc_can_bus = NuScenesCanBus(dataroot=can_bus_path)
-    from nuscenes.utils import splits
+    # Check if can_bus directory exists before creating NuScenesCanBus
+    nusc_can_bus = None
+    if can_bus_path is not None:
+        can_bus_full_path = osp.join(can_bus_path, 'can_bus')
+        if osp.exists(can_bus_full_path):
+            nusc_can_bus = NuScenesCanBus(dataroot=can_bus_path)
+        else:
+            print(f"Warning: CAN bus directory not found at {can_bus_full_path}. Skipping CAN bus data.")
+    else:
+        print("Warning: can_bus_path is None. Skipping CAN bus data.")
+    from data_converter.splits import splits
     available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
     assert version in available_vers
     if version == 'v1.0-trainval':
-        train_scenes = splits.train
-        val_scenes = splits.val
+        train_scenes = splits["train"]
+        val_scenes = splits["val"]
     elif version == 'v1.0-test':
-        train_scenes = splits.test
+        train_scenes = splits["test"]
         val_scenes = []
     elif version == 'v1.0-mini':
-        train_scenes = splits.mini_train
-        val_scenes = splits.mini_val
+        train_scenes = splits["mini_train"]
+        val_scenes = splits["mini_val"]
     else:
         raise ValueError('unknown')
 
@@ -158,6 +167,9 @@ def get_available_scenes(nusc):
 def _get_can_bus_info(nusc, nusc_can_bus, sample):
     scene_name = nusc.get('scene', sample['scene_token'])['name']
     sample_timestamp = sample['timestamp']
+    # If nusc_can_bus is None, return zeros
+    if nusc_can_bus is None:
+        return np.zeros(18)
     try:
         pose_list = nusc_can_bus.get_messages(scene_name, 'pose')
     except:
@@ -233,16 +245,19 @@ def _fill_trainval_infos(nusc,
         l2e_r_mat = Quaternion(l2e_r).rotation_matrix
         e2g_r_mat = Quaternion(e2g_r).rotation_matrix
 
-        # obtain 6 image's information per frame
+        # obtain image information per frame, handle missing cameras gracefully
         camera_types = [
             'CAM_FRONT',
-            'CAM_FRONT_RIGHT',
-            'CAM_FRONT_LEFT',
+            # 'CAM_FRONT_RIGHT',
+            # 'CAM_FRONT_LEFT',
             'CAM_BACK',
-            'CAM_BACK_LEFT',
-            'CAM_BACK_RIGHT',
+            'CAM_LEFT',
+            'CAM_RIGHT',
         ]
         for cam in camera_types:
+            if cam not in sample['data']:
+                print(f"Warning: Camera {cam} not found in sample data. Skipping.")
+                continue
             cam_token = sample['data'][cam]
             cam_path, _, cam_intrinsic = nusc.get_sample_data(cam_token)
             cam_info = obtain_sensor2top(nusc, cam_token, l2e_t, l2e_r_mat,

@@ -94,7 +94,7 @@ The pretrained weights is drived from [BEVDet](https://github.com/HuangJunJie201
 
 6. Generate the multi-scale ground truth for Occ3D-nus or OpenOcc dataset:
 ```generate_multi-scale-gt
-python tools/generate_ms_occ.py --dataset occ3d --pkl_path data/nuscenes/stcocc-nuscenes_infos_train.pkl
+python tools/generate_ms_occ.py --dataset occ3d --pkl_path data/nuscenes/stcocc-nuscenes_infos_val.pkl
 ```
 
 Finally the folder structure:
@@ -125,13 +125,13 @@ Project
 Train STCOcc with 8GPUs:
 
 ```train
-bash tools/dist_train.sh config/stcocc/stcocc_r50_704x256_16f_openocc_12e.py 8
+bash tools/dist_train.sh config/stcocc/stcocc_r50_704x256_16f_occ3d_36e_v1.py 4
 ```
 
 Evaluate STCOcc with 6GPUs:
 
 ```eval
-bash tools/dist_test.sh config/stcocc/stcocc_r50_704x256_16f_openocc_12e.py path/to/ckpts 6
+bash tools/dist_test.sh config/stcocc/stcocc_r50_704x256_16f_occ3d_36e.py work_dirs/stcocc_r50_704x256_16f_occ3d_36e/latest.pth 1
 ```
 
 ## 🎥 Visualization

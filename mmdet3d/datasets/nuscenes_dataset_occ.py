@@ -136,7 +136,7 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
 
             gt_semantics = occ_gt['semantics'].astype(np.uint8)
             if dataset_name == 'occ3d':
-                gt_flow = np.zeros((200, 200, 16, 2), dtype=np.float16)
+                gt_flow = np.zeros((352, 352, 32, 2), dtype=np.float16)
             elif dataset_name == 'openocc':
                 gt_flow = occ_gt['flow'].astype(np.float16)
 
@@ -177,16 +177,15 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
     def evaluate_miou(self, results, logger=None, dataset_name='openocc'):
         pred_sems, gt_sems = [], []
         data_index = []
-
         num_classes = 17 if dataset_name == 'openocc' else 18
         use_image_mask = True if dataset_name == 'occ3d' else False
+        use_image_mask = False
         self.miou_metric = Metric_mIoU(
             num_classes=num_classes,
             use_lidar_mask=False,
             use_image_mask=use_image_mask,
             logger=logger
         )
-
         print('\nStarting Evaluation...')
         processed_set = set()
         for result in results:
@@ -194,32 +193,25 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
             for i, id in enumerate(data_id):
                 if id in processed_set: continue
                 processed_set.add(id)
-
                 pred_sem = result['occ_results'][i]
                 data_index.append(id)
                 pred_sems.append(pred_sem)
-
         for index in tqdm(data_index):
             if index >= len(self.data_infos):
                 break
             info = self.data_infos[index]
-
             occ_path = info['occ_path']
             if dataset_name == 'openocc':
                 occ_path = occ_path.replace('gts', 'openocc_v2')
             occ_path = os.path.join(occ_path, 'labels.npz')
             occ_gt = np.load(occ_path, allow_pickle=True)
-
             gt_semantics = occ_gt['semantics']
             pr_semantics = pred_sems[data_index.index(index)]
-
             if dataset_name == 'occ3d':
                 mask_camera = occ_gt['mask_camera'].astype(bool)
             else:
                 mask_camera = None
-
             self.miou_metric.add_batch(pr_semantics, gt_semantics, None, mask_camera)
-
         _, miou, _, _, _ = self.miou_metric.count_miou()
         eval_dict = {
             'miou':miou,
@@ -232,13 +224,12 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
         elif self.eval_metric == 'miou':
             return self.evaluate_miou(occ_results, logger, dataset_name=self.dataset_name)
 
-
     def vis_occ(self, semantics, empty_idx, color_map=None):
         # simple visualization of result in BEV
         semantics_valid = np.logical_not(semantics == empty_idx)
         d = np.arange(16).reshape(1, 1, 16)
-        d = np.repeat(d, 200, axis=0)
-        d = np.repeat(d, 200, axis=1).astype(np.float32)
+        d = np.repeat(d, 352, axis=0)
+        d = np.repeat(d, 352, axis=1).astype(np.float32)
         d = d * semantics_valid
         selected = np.argmax(d, axis=2)
 
@@ -250,8 +241,8 @@ class NuScenesDatasetOccpancy(NuScenesDataset):
 
         occ_bev = occ_bev.flatten().astype(np.int32)
         occ_bev_vis = color_map[occ_bev].astype(np.uint8)
-        occ_bev_vis = occ_bev_vis.reshape(200, 200, 3)[::-1, ::-1, :3]
-        occ_bev_vis = cv2.resize(occ_bev_vis, (200, 200))
+        occ_bev_vis = occ_bev_vis.reshape(352, 352, 3)[::-1, ::-1, :3]
+        occ_bev_vis = cv2.resize(occ_bev_vis, (352, 352))
 
         occ_bev_vis = cv2.resize(occ_bev_vis, (600, 600))
         occ_bev_vis = cv2.cvtColor(occ_bev_vis, cv2.COLOR_BGR2RGB)

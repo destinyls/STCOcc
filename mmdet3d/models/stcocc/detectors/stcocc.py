@@ -1,5 +1,6 @@
 import os
 import copy
+from typing import Any
 import numpy as np
 
 import torch
@@ -109,6 +110,17 @@ class STCOcc(CenterPoint):
         backward_projection_config_dict['num_stage_0'] = copy.deepcopy(backward_projection_config)
 
         for index in range(num_stage):
+            # Set top_k for OA_SpatialCrossAttention
+            if self.train_top_k and self.training:
+                top_k = self.train_top_k[index]
+            elif self.val_top_k and not self.training:
+                top_k = self.val_top_k[index]
+            else:
+                top_k = None
+            
+            # Assign top_k to OA_SpatialCrossAttention config
+            backward_projection_config_dict['num_stage_{}'.format(index)]['transformer']['encoder']['transformerlayers']['attn_cfgs'][1]['top_k'] = top_k
+            
             # first stage:
             if index == num_stage - 1:
                 backward_projection_config_dict['num_stage_{}'.format(index)]['transformer']['encoder']['first_stage'] = True
@@ -417,10 +429,12 @@ class STCOcc(CenterPoint):
         depth = return_dict['depth']
         intermediate_occ_pred_dict = return_dict['intermediate_occ_pred_dict']
         history_fusion_params = return_dict['history_fusion_params']
+        # print("intermediate_occ_pred_dict 1: ", intermediate_occ_pred_dict.keys())
 
         # ---------------------- forward ------------------------------
         pred_voxel_semantic, pred_voxel_feats = self.occupancy_head(voxel_feats, last_occ_pred=last_occ_pred)
         intermediate_occ_pred_dict['pred_voxel_semantic_1_1'] = pred_voxel_semantic
+        # print("intermediate_occ_pred_dict 2: ", intermediate_occ_pred_dict.keys())
 
         if self.with_specific_component('flow_head'):
             pred_voxel_flows, foreground_masks = self.flow_head(voxel_feats, pred_voxel_semantic)
@@ -430,6 +444,7 @@ class STCOcc(CenterPoint):
 
         gt_semantic_voxel_dict = dict()
         gt_semantic_voxel_dict['gt_semantic_voxel_1_1'] = kwargs['voxel_semantics']
+
         num_stage = self.num_stage
         for index in range(num_stage):
             gt_semantic_voxel_dict['gt_semantic_voxel_1_{}'.format(2**(index+1))] = kwargs['voxel_semantics_1_{}'.format(2**(index+1))]
@@ -439,6 +454,8 @@ class STCOcc(CenterPoint):
 
         # calc voxel loss
         for index in range(num_stage+1):
+            # print('pred_voxel_semantic_1_{}'.format(2**index), intermediate_occ_pred_dict['pred_voxel_semantic_1_{}'.format(2**index)].shape)
+            # print('gt_semantic_voxel_1_{}'.format(2**index), gt_semantic_voxel_dict['gt_semantic_voxel_1_{}'.format(2**index)].shape)
             loss_occ = self.get_voxel_loss(
                 intermediate_occ_pred_dict['pred_voxel_semantic_1_{}'.format(2**index)],
                 gt_semantic_voxel_dict['gt_semantic_voxel_1_{}'.format(2 **index)],

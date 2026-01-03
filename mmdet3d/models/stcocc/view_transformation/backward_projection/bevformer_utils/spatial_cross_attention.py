@@ -3,6 +3,7 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from mmcv.utils import ext_loader
 from mmcv.runner import force_fp32
@@ -43,6 +44,8 @@ class OA_SpatialCrossAttention(BaseModule):
                      num_levels=4),
                  layer_scale=None,
                  dbound=None,
+                 foreground_idx=None,
+                 top_k=None,
                  **kwargs
                  ):
         super(OA_SpatialCrossAttention, self).__init__(init_cfg)
@@ -57,6 +60,8 @@ class OA_SpatialCrossAttention(BaseModule):
         self.dbound = dbound
         self.output_proj = nn.Linear(embed_dims, embed_dims)
         self.batch_first = batch_first
+        self.foreground_idx = foreground_idx    # Set the foreground index
+        self.top_k = top_k                      # top_k sampling for foreground voxels
         if layer_scale is not None:
             self.layer_scale = nn.Parameter(
                 layer_scale * torch.ones(embed_dims),
@@ -86,6 +91,7 @@ class OA_SpatialCrossAttention(BaseModule):
                 pred_img_depth=None,
                 depth_bound=None,
                 nonempty_voxel_logits=None,
+                occ_pred=None,
                 bev_mask=None,
                 **kwargs):
         """Forward Function of Detr3DCrossAtten.
@@ -136,6 +142,39 @@ class OA_SpatialCrossAttention(BaseModule):
         bs, num_query, _ = query.size()
         num_cam, D = reference_points_cam.size(0), reference_points_cam.size(3)         # reference_points_cam: [num_cam, bs, num_query, D, 2]
         nonempty_voxel_logits = nonempty_voxel_logits.reshape(bs, num_query, D, 1)
+        
+        # Calculate foreground probability from occ_pred
+        # occ_pred shape: [bs, num_query, D, num_classes]
+        # Reshape to [bs, num_query*D, num_classes] for foreground probability calculation
+        occ_pred_reshaped = occ_pred.view(bs, num_query * D, -1)
+        
+        # Apply softmax to get class probabilities
+        occ_prob = F.softmax(occ_pred_reshaped, dim=-1)
+        
+        # Calculate foreground probability
+        if self.foreground_idx is not None:
+            # Sum probabilities of all foreground classes
+            foreground_prob = occ_prob[:, :, self.foreground_idx].sum(dim=-1)
+        else:
+            # Default: consider all non-free classes as foreground (exclude last class which is free)
+            foreground_prob = 1 - occ_prob[:, :, -1]
+        
+        # Select top_k foreground voxels if top_k is set
+        # print("self.top_k: ", self.top_k, foreground_prob.shape)
+        if self.top_k is not None:
+            total_number = foreground_prob.shape[1]
+            # Clamp top_k to avoid exceeding total_number
+            top_k = min(self.top_k, total_number)
+            # Get indices of top_k foreground voxels
+            foreground_indices = torch.topk(foreground_prob, top_k, dim=1)[1]
+            # Create a mask for foreground voxels
+            foreground_mask = torch.zeros_like(foreground_prob, dtype=torch.bool)
+            foreground_mask.scatter_(1, foreground_indices, True)
+            # Reshape back to [bs, num_query, D]
+            foreground_mask = foreground_mask.view(bs, num_query, D)
+            # Expand mask to match occlusion_mask shape
+            foreground_mask = foreground_mask[None, :, :, :, None].repeat(num_cam, 1, 1, 1, 1).squeeze(-1)
+        
         pred_img_depth = pred_img_depth.view(bs * num_cam, -1, spatial_shapes[0][0], spatial_shapes[0][1])
         pred_img_depth = pred_img_depth.flatten(2).permute(0, 2, 1)                     # [bs, h*w, C]
         # Sampling
@@ -145,6 +184,11 @@ class OA_SpatialCrossAttention(BaseModule):
             sampling_rate = torch.ones_like(nonempty_voxel_logits) * 0.5
         occlusion_mask = sampling_rate < nonempty_voxel_logits
         occlusion_mask = occlusion_mask[None].repeat(num_cam, 1, 1, 1, 1).squeeze(-1)
+        
+        # Apply foreground mask if top_k is set
+        if self.top_k is not None:
+            occlusion_mask = occlusion_mask & foreground_mask
+            
         if torch.sum(bev_mask & occlusion_mask) != 0:
             bev_mask = bev_mask & occlusion_mask
 

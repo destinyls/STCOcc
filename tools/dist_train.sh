@@ -8,8 +8,8 @@ PORT=${PORT:-29500}
 MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
-python -m torch.distributed.launch \
-    --nnodes=$NNODES \
+# python -m torch.distributed.launch \
+torchrun  --nnodes=$NNODES \
     --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR \
     --nproc_per_node=$GPUS \

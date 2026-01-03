@@ -43,6 +43,8 @@ occ_class_names = ['others','barrier', 'bicycle', 'bus', 'car', 'construction_ve
 train_top_k = [12500, 2500, 500]
 val_top_k = [12500, 2500, 500]
 
+train_top_k = [3125, 625, 125]
+val_top_k = [3125, 625, 125]
 
 # DataLoader Config
 data_config = {
@@ -73,10 +75,10 @@ train_sequences_split_num = 1
 test_sequences_split_num = 1
 
 # Running Config
-num_gpus = 4
+num_gpus = 8
 samples_per_gpu = 1
 workers_per_gpu = 0
-total_epoch = 24
+total_epoch = 20
 num_iters_per_epoch = int(5570 // (num_gpus * samples_per_gpu))      # total samples: 28130
 
 # Model Config
@@ -218,6 +220,7 @@ model = dict(
                             dbound=grid_config['depth'],
                             num_cams=4,
                             dropout=0.0,
+                            foreground_idx=[1,2,3,4,5,6,7,8,9,10],
                             deformable_attention=dict(
                                 type='OA_MSDeformableAttention3D',
                                 embed_dims=backward_numC_Trans,
@@ -246,6 +249,7 @@ model = dict(
         bev_w=bev_w_,
         bev_h=bev_h_,
         bev_z=bev_z,
+        foreground_idx=[1,2,3,4,5,6,7,8,9,10]
     ),
     occupancy_head=dict(
         type='OccHead',

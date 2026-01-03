@@ -85,7 +85,6 @@ class OccPredictor(nn.Module):
         empty_occ_logits = occ_logits[..., -1].unsqueeze(-1)
         nonempty_occ_logits = 1 - empty_occ_logits
         nonempty_occ_logits = nonempty_occ_logits.permute(0, 2, 1, 3, 4)  # [bs, w, h, z, c] -> [bs, h, w, z, c]
-
         return occ_pred, nonempty_occ_logits
 
 
@@ -513,6 +512,7 @@ class BEVFormerEncoderLayer(MyCustomBaseTransformerLayer):
                     bev_query_depth=bev_query_depth,
                     pred_img_depth=pred_img_depth,
                     nonempty_voxel_logits=nonempty_voxel_logits,
+                    occ_pred=occ_pred,
                     bev_mask=bev_mask,
                     depth_bound=depth_bound,
                     **kwargs)

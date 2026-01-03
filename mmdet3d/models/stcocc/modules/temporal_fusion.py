@@ -136,15 +136,27 @@ class SparseFusion(BaseModule):
         tmp_bev = tmp_bev.reshape(bs, mc, z, h, w)
         sampled_history_bev = F.grid_sample(tmp_bev, grid.to(curr_bev.dtype).permute(0, 3, 1, 2, 4),  align_corners=True, mode='bilinear')
 
-        # determine the nonempty_voxel
-
-        # top_k sampling, sampled foreground and background top_k
+        # top_k sampling, sampled foreground and background top_k voxel
         last_occ_pred = last_occ_pred.permute(0, 3, 2, 1, 4).reshape(bs, h*w*z, -1)
         occ_embed = self.occ_embedding(last_occ_pred).permute(0, 2, 1)  # [bs, occ_embedims, h*w*z]
-        nonempty_prob = nonempty_prob.reshape(bs, -1)
-        total_number = nonempty_prob.shape[1]
-        indices = torch.topk(nonempty_prob, self.top_k, dim=1)[1]                        # foreground indices
-        bg_indices = torch.topk(1 - nonempty_prob, total_number - self.top_k, dim=1)[1]  # background indices
+        
+        # Calculate foreground probability from cur_occ_pred
+        # cur_occ_pred shape: [bs, w, h, z, c]
+        # Reshape to [bs, h*w*z, c] and apply softmax
+        occ_prob = F.softmax(last_occ_pred, dim=-1)
+        
+        # Calculate foreground probability by summing softmax values of foreground classes
+        if self.foreground_idx is not None:
+            # Sum probabilities of all foreground classes
+            foreground_prob = occ_prob[:, :, self.foreground_idx].sum(dim=-1)
+        else:
+            # Default: consider all non-free classes as foreground (exclude last class which is free)
+            foreground_prob = 1 - occ_prob[:, :, -1]
+        
+        total_number = foreground_prob.shape[1]
+        indices = torch.topk(foreground_prob, self.top_k, dim=1)[1]                        # foreground indices
+        bg_indices = torch.topk(1 - foreground_prob, total_number - self.top_k, dim=1)[1]  # background indices
+
         sampled_history, sampled_current, sampled_occ_embd = [], [], []
         sampled_bg_history, sampled_bg_current, sampled_bg_occ_embed = [], [], []
         for i in range(bs):
